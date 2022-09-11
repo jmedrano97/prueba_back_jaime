@@ -1,5 +1,5 @@
 from django.db import models
-
+from datetime import datetime
 # Create your models here.
 class Orden(models.Model):
     CREADO      = 0
@@ -16,6 +16,18 @@ class Orden(models.Model):
         (ENTREGADO,'ENTREGADO'),
         (CANCELADO,'CANCELADO'),
     )
+    CHICO   = 1
+    MEDIANO = 2
+    GRANDE  = 3
+    DEF     = 99
+    PAQUETE = (
+        (CHICO,'CHICO'),
+        (MEDIANO,'MEDIANO'),
+        (GRANDE,'GRANDE'),
+        (DEF,'DEF'),
+    )
     cantidad_productos = models.IntegerField(null=False)
-    peso_prodcutos = models.IntegerField(null=False)
+    peso_producutos = models.IntegerField(null=False)
     estatus = models.IntegerField(choices=ESTATUS)
+    tipo_paquete       = models.IntegerField(choices=PAQUETE)
+    fecha              = models.DateTimeField(auto_now_add=True)
