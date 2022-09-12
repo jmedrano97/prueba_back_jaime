@@ -6,6 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime,timedelta
 from django.shortcuts import get_object_or_404
 from .models import *
+import xlrd
 import json
 import time
 TOKEN_CLIENTE = 'token_cliente_1234'
@@ -46,41 +47,87 @@ class OrdenView(View):
             datos={'mensaje':'Error: %s.'%e}
         return JsonResponse(datos)
     
-    def post(self,request):
+    def post(self,request,file=''):
         try:
+            mensaje=''
+            id_creado=''
+            orden_actual=''
+            ids_ls=[]
+            ordenes_ls=[]
             token_rq = request.headers['Token']
             if(token_rq==TOKEN_CLIENTE or token_rq==TOKEN_INTERNO):
-                entrada = json.loads(request.body)
-                origen  =entrada['dirccion_origen_id']
-                cantidad=entrada['dirccion_destino_id']
-                origen_obj = get_object_or_404(Direccion, pk=origen)
-                cantidad_obj = get_object_or_404(Direccion, pk=cantidad)
-                cantidad=entrada['cantidad_productos']
-                peso = entrada['peso_producutos']
-                datos_correctos = validacion(cantidad,peso)
-                if datos_correctos:
-                    tipo=obtener_tam(peso)
-                    if tipo > 0:
-                        estatus=Orden.CREADO
-                        actual_creada=Orden.objects.create(
-                            dirccion_origen=origen_obj,
-                            dirccion_destino=cantidad_obj,
-                            cantidad_productos=cantidad,
-                            peso_producutos=peso,
-                            estatus=estatus,
-                            tipo_paquete=tipo
-                        )
-                        orden_nueva = unico_segmentado(actual_creada)
-                        datos={'mensaje':'Éxito','id_creado':actual_creada.id,'orden_actual':orden_nueva}
-                    else:
-                        datos={'mensaje':'NOTA: No contamos con el servicio estándar para el tipo de paquete. Por favor comuníquese con la empresa para realizar un convenio especial.'}
+                if file == 'Subir_archivo':
+                    ls_file=[]
+                    archivo = ('formato_post.xls')
+                    openArchivo = xlrd.open_workbook(archivo)
+                    sheet = openArchivo.sheet_by_name('Sheet1')
+                    for i in range(sheet.nrows):
+                        i+1
+                        dic_file={
+                            "dirccion_origen_id": (sheet.cell_value(i,0)),
+                            "dirccion_destino_id": (sheet.cell_value(i,1)),
+                            "cantidad_productos": (sheet.cell_value(i,2)),
+                            "peso_producutos": (sheet.cell_value(i,3))
+                        }
+                        ls_file.append(dic_file)
+                    entrada= ls_file
                 else:
-                    datos={'mensaje':'Error en los datos.'}
+                    entrada = json.loads(request.body)
+                    entrada= [entrada]
+                print('entrada: ',entrada)
+                for i in entrada:
+                    origen  =i['dirccion_origen_id']
+                    cantidad=i['dirccion_destino_id']
+                    origen_obj = get_object_or_404(Direccion, pk=origen)
+                    cantidad_obj = get_object_or_404(Direccion, pk=cantidad)
+                    cantidad=i['cantidad_productos']
+                    peso = i['peso_producutos']
+                    datos_correctos = validacion(cantidad,peso)
+                    if datos_correctos:
+                        tipo=obtener_tam(peso)
+                        if tipo > 0:
+                            estatus=Orden.CREADO
+                            actual_creada=Orden.objects.create(
+                                dirccion_origen=origen_obj,
+                                dirccion_destino=cantidad_obj,
+                                cantidad_productos=cantidad,
+                                peso_producutos=peso,
+                                estatus=estatus,
+                                tipo_paquete=tipo
+                            )
+                            orden_actual = unico_segmentado(actual_creada)
+                            mensaje='Éxito'
+                            id_creado=actual_creada.id
+                            ids_ls.append(id_creado)
+                            ordenes_ls.append(orden_actual)
+                        else:
+                            if(token_rq==TOKEN_INTERNO):
+                                estatus=Orden.CREADO
+                                actual_creada=Orden.objects.create(
+                                    dirccion_origen=origen_obj,
+                                    dirccion_destino=cantidad_obj,
+                                    cantidad_productos=cantidad,
+                                    peso_producutos=peso,
+                                    estatus=estatus,
+                                    tipo_paquete=tipo
+                                )
+                                orden_actual = unico_segmentado(actual_creada)
+                                mensaje='Éxito'
+                                id_creado=actual_creada.id
+                                ids_ls.append(id_creado)
+                                ordenes_ls.append(orden_actual)
+                            else:
+                                mensaje='NOTA: No contamos con el servicio estándar para el tipo de paquete. Por favor comuníquese con la empresa para realizar un convenio especial.'
+                    else:
+                        mensaje='Error en los datos.'
+                    
+                    datos={'mensaje':mensaje,'id_creado':ids_ls,'orden_actual':ordenes_ls}
             else:
                 datos = {'mensaje': 'Token no valido'}
         except Exception as e:
             print(str(e))
             datos={'mensaje':'Error: %s.'%e}
+        # datos={'mensaje':'Prueba'}
         return JsonResponse(datos)
 
     def put(self,request, id):
