@@ -1,5 +1,5 @@
 # prueba_back_jaime
--Crear entorno virtual (En este caso con virtualenv):
+    -Crear entorno virtual (En este caso con virtualenv):
 
     terminal:
     
