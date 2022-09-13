@@ -56,26 +56,31 @@ class OrdenView(View):
             ordenes_ls=[]
             token_rq = request.headers['Token']
             if(token_rq==TOKEN_CLIENTE or token_rq==TOKEN_INTERNO):
-                if file == 'Subir_archivo':
+                #File es una variable que se obtiene de la url
+                if file == 'Subir_archivo':  #Si se obtiene Subir_archivo realiza el procedieminto con xls
                     ls_file=[]
-                    archivo = ('formato_post.xls')
-                    openArchivo = xlrd.open_workbook(archivo)
+                    archivo = ('formato_post.xls') #Se ingresa la ruta (en este caso en la carpeta raiz)
+                    openArchivo = xlrd.open_workbook(archivo) 
                     sheet = openArchivo.sheet_by_name('Sheet1')
+                    #Cuando se trae los datos del archivo recorre las filas
                     for i in range(sheet.nrows):
                         i+1
+                        #Se agregan a un diccionario con las mismas llaves que el post
                         dic_file={
                             "dirccion_origen_id": (sheet.cell_value(i,0)),
                             "dirccion_destino_id": (sheet.cell_value(i,1)),
                             "cantidad_productos": (sheet.cell_value(i,2)),
                             "peso_producutos": (sheet.cell_value(i,3))
                         }
-                        ls_file.append(dic_file)
-                    entrada= ls_file
+                        ls_file.append(dic_file) #el diccionario se agrega una lista
+                    entrada= ls_file #esta lista se va a recorrer en el procedimiento que ya se hacia antes
                 else:
+                    #Si no es Subir_archivo se extraen los datos del body como ya se hacia normalmente
                     entrada = json.loads(request.body)
                     entrada= [entrada]
-                print('entrada: ',entrada)
+
                 for i in entrada:
+                    #Aquí empieza el funcionamiento original
                     origen  =i['dirccion_origen_id']
                     cantidad=i['dirccion_destino_id']
                     origen_obj = get_object_or_404(Direccion, pk=origen)
